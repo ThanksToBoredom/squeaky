@@ -1,0 +1,7 @@
+// Trimmed for Squeaky: only the modules Apple's XProtect rules need (they import "hash"),
+// plus the dependency-free basics. pe/elf/dotnet/cuckoo/magic/dex/macho are left out.
+MODULE(math)
+MODULE(time)
+MODULE(console)
+MODULE(string)
+MODULE(hash)

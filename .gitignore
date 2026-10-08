@@ -1,0 +1,11 @@
+.build/
+build/
+.swiftpm/
+*.xcodeproj/
+DerivedData/
+.DS_Store
+# Third-party screenshots used for design reference only
+reference/
+dist/
+# Browser screenshots from design research
+.playwright-mcp/
