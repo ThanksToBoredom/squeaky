@@ -25,6 +25,7 @@ cd squeaky
 scripts/create-signing-cert.sh   # once: a local signing certificate, so permissions survive rebuilds
 scripts/build-app.sh debug       # builds build/Squeaky.app
 open build/Squeaky.app
+git config core.hooksPath .githooks   # once: checks your commit messages (see below)
 ```
 
 Run the tests before opening a pull request:
@@ -50,8 +51,49 @@ the app through its screens and saves screenshots; it's the quickest way to chec
 6. Open the pull request and fill in the template: what changed, why, and how you tested it.
    Include before/after screenshots for UI changes.
 
-Commit messages: a short summary line in the imperative mood ("Fix…", "Add…"), optionally a
-`fix:`/`feat:`/`docs:` prefix, and a body explaining *why* when it isn't obvious.
+### Commit messages: Conventional Commits (required)
+
+Every commit and every pull request title must follow
+[Conventional Commits](https://www.conventionalcommits.org):
+
+```
+<type>(<optional scope>)<optional !>: <description in the imperative mood>
+```
+
+| Type | Use it for | Release |
+| --- | --- | --- |
+| `feat` | A new feature | minor (0.1.0 → 0.2.0) |
+| `fix` | A bug fix | patch (0.1.0 → 0.1.1) |
+| `perf` | A performance improvement | patch |
+| `refactor`, `docs`, `test`, `build`, `ci`, `chore`, `style`, `revert` | Everything else | none |
+
+Add `!` after the type (`feat!: …`), or a `BREAKING CHANGE:` footer, for breaking changes: that's a
+major release (a minor one while we're below 1.0). Examples:
+
+```
+feat(applications): offer the vendor's uninstaller
+fix(cleanup): keep the done screen from stalling
+docs: explain the Gatekeeper prompt
+```
+
+The `commit-msg` hook (enable it with `git config core.hooksPath .githooks`) checks your messages
+locally, and the **Conventional commits** check on every pull request checks the title and all
+commits. Pull requests are squash-merged, so the title becomes the commit on `main`; write it
+like one. Add a body explaining *why* when it isn't obvious.
+
+### Releases
+
+Releases are automatic. On every merge to `main`, the Release workflow looks at the conventional
+commits since the last `vX.Y.Z` tag. If there's a `feat`, `fix`, `perf` or breaking change, it works
+out the next version (see `scripts/next-version.sh`), runs the tests, builds a universal DMG and
+publishes a GitHub release with notes generated from the merged pull requests. There's no version
+number to bump by hand. `scripts/release.sh` does the same locally (`DRY_RUN=1` builds without
+publishing).
+
+Releases are signed ad hoc unless the repository has the `SIGNING_P12` (a base64-encoded `.p12`
+with the "Squeaky Local Signing" certificate and key) and `SIGNING_P12_PASSWORD` secrets. With them,
+every release has the same signature, so macOS keeps granted permissions such as Full Disk Access
+across updates.
 
 ## Safety rules for anything that removes files
 

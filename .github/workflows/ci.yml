@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  commits:
+    name: Conventional commits
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check the pull request title
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: scripts/check-commits.sh --title "$TITLE"
+      - name: Check every commit
+        run: scripts/check-commits.sh "${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"
+
+  build:
+    name: Build and test
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: swift --version
+      - name: Test
+        run: |
+          flags=()
+          if swift build --help 2>&1 | grep -q -- '--build-system'; then flags+=(--build-system native); fi
+          swift test "${flags[@]}"
+      - name: Build a universal DMG
+        run: UNIVERSAL=1 scripts/package.sh dist/Squeaky-pr${{ github.event.pull_request.number }}.dmg
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Squeaky-pr${{ github.event.pull_request.number }}
+          path: dist/*.dmg
+          retention-days: 14
