@@ -7,6 +7,30 @@
 A native macOS cleaner, built in SwiftUI. Each module has its own full-bleed gradient window, an
 icon sidebar, and a simple welcome → scan → results → review → done flow.
 
+<p align="center">
+  <img src="docs/images/sweep-results.png" alt="Sweep results: junk to clean, malware scan, startup items, unused apps and duplicate downloads at a glance">
+</p>
+
+<p align="center">
+  <a href="https://github.com/ThanksToBoredom/squeaky/releases/latest"><b>Download the latest release</b></a>
+  · macOS 15 or later · Apple Silicon and Intel
+</p>
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/images/sweep-scanning.png" alt="Sweep scanning"><br><sub>Sweep runs every scan at once</sub></td>
+    <td width="50%"><img src="docs/images/cleanup-results.png" alt="Cleanup results"><br><sub>Cleanup: caches, logs and other junk</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/images/cleanup-review.png" alt="Reviewing junk before cleaning"><br><sub>Review exactly what gets removed</sub></td>
+    <td width="50%"><img src="docs/images/applications.png" alt="Applications"><br><sub>Applications: uninstaller, unused apps and leftovers</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/images/cleanup-done.png" alt="Cleanup complete"><br><sub>Done, with confetti</sub></td>
+    <td width="50%"></td>
+  </tr>
+</table>
+
 > [!WARNING]
 > **Disclaimer.** Squeaky deletes files. Caches and logs are deleted permanently; everything else is
 > moved to the Trash. Review what's selected before you clean, and keep a backup (for example with
