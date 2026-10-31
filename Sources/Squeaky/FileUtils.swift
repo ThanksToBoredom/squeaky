@@ -111,14 +111,18 @@ enum FileUtils {
     }
 
     static func sha256(of url: URL, limit: Int? = nil) -> String? {
-        guard let handle = try? FileHandle(forReadingFrom: url) else { return nil }
+        guard limit.map({ $0 >= 0 }) ?? true,
+              let handle = try? FileHandle(forReadingFrom: url) else { return nil }
         defer { try? handle.close() }
         var hasher = SHA256()
         var remaining = limit ?? Int.max
         while remaining > 0 {
             if Task.isCancelled { return nil }
             let chunk = Swift.min(1 << 20, remaining)
-            guard let data = try? handle.read(upToCount: chunk), !data.isEmpty else { break }
+            let data: Data
+            do { data = try handle.read(upToCount: chunk) ?? Data() }
+            catch { return nil }
+            if data.isEmpty { break }
             hasher.update(data: data)
             remaining -= data.count
         }
