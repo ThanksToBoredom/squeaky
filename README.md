@@ -25,7 +25,7 @@ icon sidebar, and a simple welcome → scan → results → review → done flow
   </tr>
   <tr>
     <td width="50%"><img src="docs/images/cleanup-done.png" alt="Cleanup complete"><br><sub>Done, with confetti</sub></td>
-    <td width="50%"></td>
+    <td width="50%"><img src="docs/images/performance.png" alt="Performance"><br><sub>Performance: live CPU, memory and disk, top apps and startup items</sub></td>
   </tr>
 </table>
 
