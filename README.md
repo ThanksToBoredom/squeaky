@@ -1,8 +1,6 @@
 <p align="center">
-  <img src="docs/images/icon.png" width="128" height="128" alt="Squeaky icon">
+  <img src="docs/images/social-preview.png" alt="Squeaky: a free, open-source cleaner for your Mac">
 </p>
-
-<h1 align="center">Squeaky</h1>
 
 A native macOS cleaner, built in SwiftUI. Each module has its own full-bleed gradient window, an
 icon sidebar, and a simple welcome → scan → results → review → done flow.
