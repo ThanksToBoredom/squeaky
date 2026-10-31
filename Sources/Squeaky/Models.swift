@@ -147,6 +147,7 @@ final class ModuleModel {
     @ObservationIgnored private var scanTask: Task<Void, Never>?
     @ObservationIgnored private var worker: Task<[ScanCategory], Never>?
     @ObservationIgnored private var scanID = UUID()
+    @ObservationIgnored private var isRemoving = false
 
     init(module: Module, scanner: @escaping Scanner) {
         self.module = module
@@ -289,6 +290,7 @@ final class ModuleModel {
     // MARK: Navigation
 
     func review(_ categoryID: String?) {
+        guard phase != .working, phase != .scanning else { return }
         withAnimation(.easeInOut(duration: 0.3)) { phase = .reviewing(categoryID) }
     }
 
@@ -342,6 +344,17 @@ final class ModuleModel {
         reporter: ProgressReporter? = nil,
         cancel: CancelToken? = nil
     ) async -> CleanSummary {
+        guard !isRemoving, phase != .scanning else {
+            return CleanSummary(failures: ["This module is already busy; try again when it finishes."])
+        }
+        isRemoving = true
+        if let cancel { cancelToken = cancel }
+        let previousPhase = phase
+        phase = .working
+        defer {
+            isRemoving = false
+            if phase == .working { phase = previousPhase }
+        }
         let reporter = reporter ?? self.reporter
         reporter.report("")
         let requests = selectedItems(in: categoryIDs).map {
@@ -470,6 +483,8 @@ final class SweepModel {
     }
 
     func run() {
+        guard phase == .results else { return }
+        phase = .working
         let cancel = CancelToken()
         runCancel = cancel
         task = Task {
@@ -606,7 +621,7 @@ final class AppState {
         // Enter the review before switching screens so the new screen is built in that phase.
         // Changing both in one animated update left the results page on screen while the
         // phase said reviewing, and re-tapping Review then set an equal phase and did nothing.
-        model(for: module)?.phase = .reviewing(categoryID)
+        model(for: module)?.review(categoryID)
         withAnimation(.easeInOut(duration: 0.35)) { selection = module }
     }
 
