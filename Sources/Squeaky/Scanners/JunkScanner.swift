@@ -3,12 +3,11 @@ import Foundation
 /// Finds regenerable junk: caches, logs, Xcode leftovers, the Trash, Mail
 /// attachments, interrupted downloads and package-manager caches.
 enum JunkScanner {
-    static func scan(_ reporter: ProgressReporter) async -> [ScanCategory] {
-        let home = FileUtils.home
-        let library = FileUtils.library
+    static func scan(_ reporter: ProgressReporter, home: URL = FileUtils.home) async -> [ScanCategory] {
+        let library = home.appendingPathComponent("Library")
         let ownBundleID = Bundle.main.bundleIdentifier ?? "no.neobits.Squeaky"
 
-        func sized(_ urls: [URL], removal: RemovalMethod) -> [CleanItem] {
+        func sized(_ urls: [URL], removal: RemovalMethod, selected: Bool = true) -> [CleanItem] {
             urls.compactMap { url -> CleanItem? in
                 if Task.isCancelled { return nil }
                 reporter.report(url.path)
@@ -19,7 +18,7 @@ enum JunkScanner {
                     name: url.lastPathComponent,
                     size: size,
                     detail: url.deletingLastPathComponent().abbreviatedPath,
-                    removal: removal
+                    removal: removal, selectedByDefault: selected
                 )
             }
             .sorted { $0.size > $1.size }
@@ -88,9 +87,9 @@ enum JunkScanner {
             ScanCategory(
                 id: "broken-downloads",
                 title: "Broken Downloads",
-                description: "Downloads that were interrupted and can't be resumed.",
+                description: "Partial downloads. Some may still be active or resumable; review before removing.",
                 symbol: "arrow.down.circle.fill",
-                items: sized(brokenDownloads, removal: .trash)
+                items: sized(brokenDownloads, removal: .trash, selected: false)
             ),
             ScanCategory(
                 id: "dev-caches",
