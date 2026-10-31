@@ -1,5 +1,6 @@
 #!/bin/bash
 # Builds Squeaky.app into ./build. Usage: scripts/build-app.sh [debug|release]
+# UNIVERSAL=1 builds for both Apple Silicon and Intel and merges them into one binary.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -8,8 +9,18 @@ CONFIG="${1:-release}"
 # Command Line Tools on macOS 27, so stick to the native one for now.
 BUILD=(swift build -c "$CONFIG" --build-system native)
 
-"${BUILD[@]}"
-BIN_DIR="$("${BUILD[@]}" --show-bin-path 2>/dev/null)"
+if [ "${UNIVERSAL:-0}" = "1" ]; then
+    BIN_DIR="$(mktemp -d)"
+    SLICES=()
+    for arch in arm64 x86_64; do
+        "${BUILD[@]}" --triple "$arch-apple-macosx15.0"
+        SLICES+=("$("${BUILD[@]}" --triple "$arch-apple-macosx15.0" --show-bin-path 2>/dev/null)/Squeaky")
+    done
+    lipo -create "${SLICES[@]}" -output "$BIN_DIR/Squeaky"
+else
+    "${BUILD[@]}"
+    BIN_DIR="$("${BUILD[@]}" --show-bin-path 2>/dev/null)"
+fi
 
 if [ ! -f Resources/AppIcon.icns ]; then
     swift scripts/make-icon.swift Resources/AppIcon.icns

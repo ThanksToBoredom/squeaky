@@ -81,7 +81,9 @@ open build/Squeaky.app
 
 ### Sharing a build
 
-`scripts/package.sh` makes a release build and wraps it in `dist/Squeaky.dmg` (Apple Silicon only).
+`scripts/package.sh` makes a release build and wraps it in `dist/Squeaky.dmg` (this Mac's architecture;
+`UNIVERSAL=1` builds for Apple Silicon and Intel). `scripts/release.sh` publishes a GitHub release of the
+pushed `HEAD` with a universal `Squeaky-<version>.dmg`, taking the version from `Resources/Info.plist`.
 It's signed with the local certificate, not an Apple Developer ID, so on another Mac Gatekeeper blocks
 the first launch: open it once, then choose **Open Anyway** in System Settings → Privacy & Security.
 Avoiding that needs a paid Apple Developer account (Developer ID signing plus notarization).
@@ -154,3 +156,7 @@ commercial use, ClamAV signatures are GPL, and VirusTotal's free API forbids use
 
 Debug builds accept `SQUEAKY_TEST_RULE=1`, which adds a rule matching files containing
 `SQUEAKY-YARA-SELFTEST`, for testing detection end to end without real malware.
+
+## License
+
+MIT, see [LICENSE](LICENSE). Bundled third-party code and artwork keep their own licences (see Credits).
