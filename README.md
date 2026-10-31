@@ -3,6 +3,16 @@
 A native macOS cleaner, built in SwiftUI. Each module has its own full-bleed gradient window, an
 icon sidebar, and a simple welcome → scan → results → review → done flow.
 
+> [!WARNING]
+> **Disclaimer.** Squeaky deletes files. Caches and logs are deleted permanently; everything else is
+> moved to the Trash. Review what's selected before you clean, and keep a backup (for example with
+> Time Machine).
+>
+> The code has been scanned for defects with GPT-6 Astra over multiple passes, but no guarantees
+> apply: Squeaky is provided as is, without warranty of any kind, and you use it at your own risk.
+> Its malware scan uses Apple's XProtect definitions and is not a replacement for a full antivirus
+> product. Squeaky is an independent project, not affiliated with or endorsed by Apple.
+
 | Module | What it does |
 | --- | --- |
 | **Sweep** | Runs Cleanup, Applications and Declutter scans in parallel; **Run** cleans the junk and moves duplicate downloads to the Trash. |
