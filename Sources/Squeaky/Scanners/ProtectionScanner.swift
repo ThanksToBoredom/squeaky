@@ -62,6 +62,7 @@ enum ProtectionScanner {
             issues.append("Some XProtect rule files could not be compiled.")
         }
         let blocklist = catalog.gatekeeperBlocklist()
+        if !blocklist.complete { issues.append("Gatekeeper's blocklist could not be fully read.") }
         let blockedExtensions = Set(catalog.blockedSafariExtensions.map { "\($0.bundleID)|\($0.team)" })
 
         // 1. Collect what to scan.

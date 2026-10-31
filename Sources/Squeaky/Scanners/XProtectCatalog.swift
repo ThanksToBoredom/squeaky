@@ -52,32 +52,39 @@ struct XProtectCatalog: Sendable {
     }
 
     /// Gatekeeper's blocklist: code-directory hashes and developer team IDs Apple has revoked.
-    func gatekeeperBlocklist() -> (hashes: Set<Data>, teams: Set<String>) {
+    func gatekeeperBlocklist() -> (hashes: Set<Data>, teams: Set<String>, complete: Bool) {
         var database: OpaquePointer?
         let path = resources.appendingPathComponent("gk.db").path
         // SQLite can allocate a handle even when opening fails.
         defer { if let database { sqlite3_close(database) } }
-        guard sqlite3_open_v2(path, &database, SQLITE_OPEN_READONLY, nil) == SQLITE_OK else { return ([], []) }
+        guard sqlite3_open_v2(path, &database, SQLITE_OPEN_READONLY, nil) == SQLITE_OK else { return ([], [], false) }
 
         var hashes = Set<Data>()
         var teams = Set<String>()
         var statement: OpaquePointer?
+        var complete = true
         if sqlite3_prepare_v2(database, "SELECT hash FROM blocked_hashes", -1, &statement, nil) == SQLITE_OK {
-            while sqlite3_step(statement) == SQLITE_ROW {
+            var status = sqlite3_step(statement)
+            while status == SQLITE_ROW {
                 if let bytes = sqlite3_column_blob(statement, 0) {
                     hashes.insert(Data(bytes: bytes, count: Int(sqlite3_column_bytes(statement, 0))))
                 }
+                status = sqlite3_step(statement)
             }
-        }
+            complete = complete && status == SQLITE_DONE
+        } else { complete = false }
         sqlite3_finalize(statement)
         statement = nil
         if sqlite3_prepare_v2(database, "SELECT team_id FROM blocked_teams", -1, &statement, nil) == SQLITE_OK {
-            while sqlite3_step(statement) == SQLITE_ROW {
+            var status = sqlite3_step(statement)
+            while status == SQLITE_ROW {
                 if let text = sqlite3_column_text(statement, 0) { teams.insert(String(cString: text)) }
+                status = sqlite3_step(statement)
             }
-        }
+            complete = complete && status == SQLITE_DONE
+        } else { complete = false }
         sqlite3_finalize(statement)
-        return (hashes, teams)
+        return (hashes, teams, complete)
     }
 
     /// Safari extensions Apple blocks, as (bundle identifier, developer team ID).
