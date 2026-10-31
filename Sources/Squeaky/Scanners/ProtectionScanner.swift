@@ -107,7 +107,7 @@ enum ProtectionScanner {
         // 4. Launch items: ones pointing at a threat go with it; odd-looking ones are listed for review.
         var review: [CleanItem] = []
         for item in launchItems {
-            if let program = item.program, let owner = findings.keys.first(where: { program.path.hasPrefix($0.path) }) {
+            if let program = item.program, let owner = findings.keys.first(where: { owns(program: program, owner: $0) }) {
                 findings[owner, default: []].append("Starts automatically (\(item.plist.lastPathComponent))")
                 continue
             }
@@ -127,7 +127,7 @@ enum ProtectionScanner {
         let threats = findings.map { owner, reasons in
             var seen = Set<String>()
             let launchPlists = launchItems
-                .filter { $0.program.map { $0.path.hasPrefix(owner.path) } ?? false }
+                .filter { $0.program.map { owns(program: $0, owner: owner) } ?? false }
                 .map { ExtraFile(url: $0.plist, size: FileUtils.allocatedSize(of: $0.plist)) }
                 .filter { FileUtils.isSafeToRemove($0.url) }
             return CleanItem(
@@ -162,6 +162,12 @@ enum ProtectionScanner {
                 items: review.sorted { $0.name < $1.name }
             ),
         ]
+    }
+
+    static func owns(program: URL, owner: URL) -> Bool {
+        let programPath = program.standardizedFileURL.path
+        let ownerPath = owner.standardizedFileURL.path
+        return programPath == ownerPath || programPath.hasPrefix(ownerPath + "/")
     }
 
     // MARK: - Targets
