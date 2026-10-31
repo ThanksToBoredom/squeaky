@@ -2,39 +2,39 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>CFBundleDevelopmentRegion</key>
-    <string>en</string>
-    <key>CFBundleDisplayName</key>
-    <string>Squeaky</string>
-    <key>CFBundleExecutable</key>
-    <string>Squeaky</string>
-    <key>CFBundleIconFile</key>
-    <string>AppIcon</string>
-    <key>CFBundleIdentifier</key>
-    <string>no.neobits.Squeaky</string>
-    <key>CFBundleInfoDictionaryVersion</key>
-    <string>6.0</string>
-    <key>CFBundleName</key>
-    <string>Squeaky</string>
-    <key>CFBundlePackageType</key>
-    <string>APPL</string>
-    <key>CFBundleShortVersionString</key>
-    <string>0.1.0</string>
-    <key>CFBundleVersion</key>
-    <string>1</string>
-    <key>LSApplicationCategoryType</key>
-    <string>public.app-category.utilities</string>
-    <key>LSMinimumSystemVersion</key>
-    <string>15.0</string>
-    <key>NSHighResolutionCapable</key>
-    <true/>
-    <key>NSAppleEventsUsageDescription</key>
-    <string>Squeaky asks Finder to move apps installed by an installer to the Trash. Finder will ask for your administrator password.</string>
-    <key>NSDesktopFolderUsageDescription</key>
-    <string>Squeaky looks for large files and duplicates on your Desktop.</string>
-    <key>NSDocumentsFolderUsageDescription</key>
-    <string>Squeaky looks for large files and duplicates in your Documents.</string>
-    <key>NSDownloadsFolderUsageDescription</key>
-    <string>Squeaky looks for old, broken and duplicate downloads.</string>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleDisplayName</key>
+	<string>Squeaky</string>
+	<key>CFBundleExecutable</key>
+	<string>Squeaky</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
+	<key>CFBundleIdentifier</key>
+	<string>no.neobits.Squeaky</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>Squeaky</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>0.1.1</string>
+	<key>CFBundleVersion</key>
+	<string>2</string>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.utilities</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>15.0</string>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>Squeaky asks Finder to move apps installed by an installer to the Trash. Finder will ask for your administrator password.</string>
+	<key>NSDesktopFolderUsageDescription</key>
+	<string>Squeaky looks for large files and duplicates on your Desktop.</string>
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>Squeaky looks for large files and duplicates in your Documents.</string>
+	<key>NSDownloadsFolderUsageDescription</key>
+	<string>Squeaky looks for old, broken and duplicate downloads.</string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
 </dict>
 </plist>

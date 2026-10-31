@@ -32,6 +32,7 @@ DMG="$PWD/dist/Squeaky-$VERSION.dmg"
 gh release create "$TAG" "$DMG" \
     --target "$COMMIT" \
     --title "Squeaky $VERSION" \
+    --generate-notes \
     --notes "$(cat <<NOTES
 ## Install
 
