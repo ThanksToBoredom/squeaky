@@ -37,9 +37,11 @@ cp Resources/Info.plist "$APP/Contents/Info.plist"
 cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 cp Resources/Art/*.svg Resources/Art/*LICENSE* "$APP/Contents/Resources/"
 # A stable identity keeps Full Disk Access across rebuilds; see scripts/create-signing-cert.sh.
-# "Cleen Local Signing" is the certificate's name from before the app was renamed; still accepted.
+# "Squeaky Release Signing" is the release certificate, only present on the release runner (see
+# scripts/create-release-secrets.sh). "Cleen Local Signing" is the local certificate's name from
+# before the app was renamed; still accepted.
 IDENTITY=""
-for name in "Squeaky Local Signing" "Cleen Local Signing"; do
+for name in "Squeaky Release Signing" "Squeaky Local Signing" "Cleen Local Signing"; do
     if security find-certificate -c "$name" >/dev/null 2>&1; then IDENTITY="$name"; break; fi
 done
 if [ -n "$IDENTITY" ]; then

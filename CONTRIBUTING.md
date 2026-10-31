@@ -90,10 +90,10 @@ publishes a GitHub release with notes generated from the merged pull requests. T
 number to bump by hand. `scripts/release.sh` does the same locally (`DRY_RUN=1` builds without
 publishing).
 
-Releases are signed ad hoc unless the repository has the `SIGNING_P12` (a base64-encoded `.p12`
-with the "Squeaky Local Signing" certificate and key) and `SIGNING_P12_PASSWORD` secrets. With them,
-every release has the same signature, so macOS keeps granted permissions such as Full Disk Access
-across updates.
+Releases are signed with the "Squeaky Release Signing" certificate, stored as the `SIGNING_P12`
+and `SIGNING_P12_PASSWORD` repository secrets (a maintainer creates them once with
+`scripts/create-release-secrets.sh`). Every release has the same signature, so macOS keeps granted
+permissions such as Full Disk Access across updates. Without the secrets, releases are signed ad hoc.
 
 ## Safety rules for anything that removes files
 
