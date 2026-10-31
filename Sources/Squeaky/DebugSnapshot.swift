@@ -32,6 +32,7 @@ enum DebugSnapshot {
             try? await Task.sleep(for: .seconds(1.5))
             for (index, step) in steps.enumerated() {
                 let parts = step.split(separator: ":").map(String.init)
+                guard !parts.isEmpty else { continue }
                 if parts[0] == "yara" {
                     // Self-test: compile Apple's XProtect rules and scan the installed apps' executables.
                     var report: [String] = []
@@ -110,7 +111,7 @@ enum DebugSnapshot {
                 if parts[0] == "size", parts.count > 1 {
                     // `size:1100x1600` resizes the window, e.g. to see the bottom of scrolling pages.
                     let dims = parts[1].split(separator: "x").compactMap { Double($0) }
-                    if dims.count == 2, let window = NSApp.windows.first(where: { $0.isVisible }) {
+                    if dims.count == 2, dims.allSatisfy({ $0.isFinite && $0 > 0 && $0 <= 16384 }), let window = NSApp.windows.first(where: { $0.isVisible }) {
                         window.setContentSize(NSSize(width: dims[0], height: dims[1]))
                     }
                     continue

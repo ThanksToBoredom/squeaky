@@ -353,7 +353,8 @@ final class ModuleModel {
         let summary = await Task.detached(priority: .userInitiated) { () -> CleanSummary in
             #if DEBUG
             // Simulates a long clean, for testing the cleaning screen.
-            if let seconds = ProcessInfo.processInfo.environment["SQUEAKY_SLOW_CLEAN"].flatMap(Double.init) {
+            if let seconds = ProcessInfo.processInfo.environment["SQUEAKY_SLOW_CLEAN"].flatMap(Double.init),
+               seconds.isFinite, seconds > 0, seconds <= 3600 {
                 usleep(useconds_t(seconds * 1_000_000))
             }
             #endif
