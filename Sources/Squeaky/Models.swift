@@ -145,6 +145,7 @@ final class ModuleModel {
     @ObservationIgnored private let scanner: Scanner
     @ObservationIgnored private var scanTask: Task<Void, Never>?
     @ObservationIgnored private var worker: Task<[ScanCategory], Never>?
+    @ObservationIgnored private var scanID = UUID()
 
     init(module: Module, scanner: @escaping Scanner) {
         self.module = module
@@ -232,11 +233,17 @@ final class ModuleModel {
     // MARK: Scanning
 
     func startScan() {
+        guard phase != .working else { return }
         scanTask?.cancel()
         scanTask = Task { await scan() }
     }
 
     func scan() async {
+        guard phase != .working, !Task.isCancelled else { return }
+        worker?.cancel()
+        let id = UUID()
+        scanID = id
+        pendingClean = nil
         withAnimation(.easeInOut(duration: 0.4)) { phase = .scanning }
         reporter.report("")
         let scanner = self.scanner
@@ -250,6 +257,7 @@ final class ModuleModel {
             worker.cancel()
         }
 
+        guard scanID == id else { return }
         guard !Task.isCancelled, !worker.isCancelled else {
             if phase == .scanning { phase = .idle }
             return
@@ -261,12 +269,16 @@ final class ModuleModel {
     }
 
     func stop() {
+        scanID = UUID()
         scanTask?.cancel()
         worker?.cancel()
         withAnimation { phase = .idle }
     }
 
     func startOver() {
+        guard phase != .working else { return }
+        stop()
+        pendingClean = nil
         categories = []
         selection = []
         excludedExtras = []
@@ -306,9 +318,10 @@ final class ModuleModel {
     }
 
     func performClean(_ pending: PendingClean) {
+        guard hasResults else { return }
         cancelToken = CancelToken()
+        withAnimation { phase = .working }
         Task {
-            withAnimation { phase = .working }
             let summary = await removeSelected(in: pending.categoryIDs, cancel: cancelToken)
             // Not animated: an animated switch into the done screen stalled in release builds
             // (the screen stayed on "Cleaning up…"). DoneView fades itself in instead.
