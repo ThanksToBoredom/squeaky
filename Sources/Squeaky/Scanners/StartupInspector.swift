@@ -156,7 +156,7 @@ enum StartupInspector {
         return date
     }
 
-    private static func run(_ executable: String, _ arguments: [String]) -> (status: Int32, output: String, error: String) {
+    static func run(_ executable: String, _ arguments: [String]) -> (status: Int32, output: String, error: String) {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: executable)
         process.arguments = arguments
@@ -164,13 +164,21 @@ enum StartupInspector {
         process.standardOutput = output
         process.standardError = error
         do { try process.run() } catch { return (-1, "", error.localizedDescription) }
+        // Drain both pipes concurrently: either stream can fill its kernel buffer.
+        let errors = ProgressReporter()
+        let drained = DispatchGroup()
+        drained.enter()
+        DispatchQueue.global(qos: .utility).async {
+            errors.report(String(decoding: error.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self))
+            drained.leave()
+        }
         let out = output.fileHandleForReading.readDataToEndOfFile()
-        let err = error.fileHandleForReading.readDataToEndOfFile()
         process.waitUntilExit()
+        drained.wait()
         return (
             process.terminationStatus,
             String(decoding: out, as: UTF8.self),
-            String(decoding: err, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
+            errors.path.trimmingCharacters(in: .whitespacesAndNewlines)
         )
     }
 }
