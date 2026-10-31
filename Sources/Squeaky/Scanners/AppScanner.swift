@@ -411,7 +411,7 @@ enum AppScanner {
         }
         if url.deletingLastPathComponent().lastPathComponent == "ByHost",
            let dot = name.lastIndex(of: "."),
-           name[name.index(after: dot)...].allSatisfy({ $0.isHexDigit || $0 == "-" }) {
+           UUID(uuidString: String(name[name.index(after: dot)...])) != nil {
             name = String(name[..<dot])
         }
         return name
