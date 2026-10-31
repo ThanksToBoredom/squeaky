@@ -158,7 +158,7 @@ enum FileOps {
         var summary = CleanSummary()
         var seen = Set<URL>()
 
-        for (index, request) in requests.enumerated() where seen.insert(request.url).inserted {
+        for (index, request) in requests.enumerated() where seen.insert(request.url.standardizedFileURL).inserted {
             if cancel?.isCancelled == true {
                 summary.cancelled = true
                 break
@@ -171,6 +171,14 @@ enum FileOps {
                 continue
             }
 
+            guard FileUtils.isSafeToRemove(request.url) else {
+                summary.failures.append("\(request.url.abbreviatedPath): refused, outside of allowed locations.")
+                continue
+            }
+            guard (try? fm.attributesOfItem(atPath: request.url.path)) != nil else {
+                summary.failures.append("\(request.url.abbreviatedPath): no longer available.")
+                continue
+            }
             for label in request.launchLabels {
                 launchctl(["bootout", "gui/\(getuid())/\(label)"])
             }
@@ -178,6 +186,9 @@ enum FileOps {
             var ok = true
             for url in [request.url] + request.extras {
                 let isPrimary = url == request.url
+                // Preserve support data if the app itself could not be removed.
+                if !ok { break }
+                if !isPrimary, !seen.insert(url.standardizedFileURL).inserted { continue }
                 guard FileUtils.isSafeToRemove(url) else {
                     summary.failures.append("\(url.abbreviatedPath): refused, outside of allowed locations.")
                     if isPrimary { ok = false }
@@ -185,6 +196,7 @@ enum FileOps {
                 }
                 // attributesOfItem doesn't follow symlinks, so dangling links still count as present.
                 guard (try? fm.attributesOfItem(atPath: url.path)) != nil else { continue }
+                let bytes = FileUtils.allocatedSize(of: url)
                 unloadUserLaunchAgent(url)
                 // Apps installed by a package are owned by root. Finder can move those to the
                 // Trash after asking for an administrator password; Squeaky itself can't.
@@ -192,6 +204,9 @@ enum FileOps {
                     if let error = trashWithFinder(url) {
                         summary.failures.append("\(url.abbreviatedPath): \(error)")
                         ok = false
+                    } else {
+                        summary.freed += bytes
+                        summary.removedURLs.append(url)
                     }
                     continue
                 }
@@ -200,15 +215,15 @@ enum FileOps {
                     case .trash: try fm.trashItem(at: url, resultingItemURL: nil)
                     case .delete: try fm.removeItem(at: url)
                     }
+                    summary.freed += bytes
+                    summary.removedURLs.append(url)
                 } catch {
                     summary.failures.append("\(url.abbreviatedPath): \(error.localizedDescription)")
                     if isPrimary { ok = false }
                 }
             }
             if ok {
-                summary.freed += request.size
                 summary.removed += 1
-                summary.removedURLs.append(request.url)
             }
         }
         return summary
@@ -258,7 +273,7 @@ enum FileOps {
         process.arguments = arguments
         process.standardOutput = FileHandle.nullDevice
         process.standardError = FileHandle.nullDevice
-        try? process.run()
+        do { try process.run() } catch { return }
         process.waitUntilExit()
     }
 }
