@@ -48,11 +48,15 @@ final class YaraRules: @unchecked Sendable {
 
     /// Names of the rules that match the file. Private rules never show up here.
     func matches(file url: URL, timeout: Int32 = 10) -> [String] {
-        guard let rules else { return [] }
+        scan(file: url, timeout: timeout).names
+    }
+
+    func scan(file url: URL, timeout: Int32 = 10) -> (names: [String], completed: Bool) {
+        guard let rules, timeout > 0 else { return ([], false) }
         let sink = MatchSink()
         let unmanaged = Unmanaged.passRetained(sink)
         defer { unmanaged.release() }
-        _ = url.path.withCString { path in
+        let status = url.path.withCString { path in
             yr_rules_scan_file(rules, path, SCAN_FLAGS_FAST_MODE, { _, message, data, userData in
                 if message == CALLBACK_MSG_RULE_MATCHING, let data, let userData {
                     let rule = data.assumingMemoryBound(to: YR_RULE.self)
@@ -64,7 +68,7 @@ final class YaraRules: @unchecked Sendable {
                 return CALLBACK_CONTINUE
             }, unmanaged.toOpaque(), timeout)
         }
-        return sink.names
+        return (sink.names, status == ERROR_SUCCESS)
     }
 
     private final class ErrorSink { var messages: [String] = [] }

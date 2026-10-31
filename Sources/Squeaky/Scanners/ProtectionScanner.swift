@@ -17,6 +17,9 @@ enum ProtectionScanner {
         var filesScanned = 0
         var catalogVersion: Int?
         var catalogUpdated: Date?
+        var issues: [String] = []
+        var incomplete: Bool { catalogVersion == nil || !issues.isEmpty }
+        var status: String { incomplete ? "Protection scan incomplete" : "No malware found in scanned files" }
     }
 
     private static let lock = NSLock()
@@ -54,6 +57,10 @@ enum ProtectionScanner {
         #endif
         let descriptions = catalog.ruleDescriptions(in: sources)
         let rules = YaraRules.compile(sources)
+        var issues: [String] = []
+        if sources.isEmpty || rules.count != sources.count {
+            issues.append("Some XProtect rule files could not be compiled.")
+        }
         let blocklist = catalog.gatekeeperBlocklist()
         let blockedExtensions = Set(catalog.blockedSafariExtensions.map { "\($0.bundleID)|\($0.team)" })
 
@@ -62,7 +69,7 @@ enum ProtectionScanner {
         let launchItems = self.launchItems()
         var targets = apps.flatMap { app in executables(in: app).map { Target(file: $0, owner: app) } }
         targets += launchItems.compactMap { item in
-            guard let program = item.program, FileManager.default.fileExists(atPath: program.path) else { return nil }
+            guard let program = item.program, isScannable(program) else { return nil }
             return Target(file: program, owner: appBundle(containing: program) ?? program)
         }
         targets += loose(apps: false).map { Target(file: $0, owner: $0) }
@@ -72,12 +79,19 @@ enum ProtectionScanner {
         // 2. YARA, in parallel (libyara allows concurrent scans with the same compiled rules).
         var findings: [URL: [String]] = [:]
         let findingsLock = NSLock()
+        var completedFiles = 0
+        var failedFiles = 0
         let chunks = stride(from: 0, to: targets.count, by: 16).map { Array(targets[$0..<min($0 + 16, targets.count)]) }
         DispatchQueue.concurrentPerform(iterations: chunks.count) { index in
             for target in chunks[index] {
                 if Task.isCancelled { return }
                 reporter.report(target.file.path)
-                let names = rules.flatMap { $0.matches(file: target.file) }
+                let scans = rules.map { $0.scan(file: target.file) }
+                findingsLock.withLock {
+                    if !scans.isEmpty && scans.allSatisfy({ $0.completed }) { completedFiles += 1 }
+                    else { failedFiles += 1 }
+                }
+                let names = scans.flatMap(\.names)
                 guard !names.isEmpty else { continue }
                 let reasons = names.map { "Matches XProtect signature \(descriptions[$0] ?? $0)" }
                 findingsLock.withLock { findings[target.owner, default: []] += reasons }
@@ -140,8 +154,9 @@ enum ProtectionScanner {
             )
         }
 
+        if failedFiles > 0 { issues.append("\(failedFiles) files could not be fully scanned.") }
         lock.withLock {
-            storedSummary = Summary(filesScanned: targets.count, catalogVersion: catalog.version, catalogUpdated: catalog.updated)
+            storedSummary = Summary(filesScanned: completedFiles, catalogVersion: catalog.version, catalogUpdated: catalog.updated, issues: issues)
         }
 
         return [

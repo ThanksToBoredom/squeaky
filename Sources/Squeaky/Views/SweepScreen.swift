@@ -75,8 +75,8 @@ struct SweepScreen: View {
                         module: .protection,
                         value: model.threatsToRemove > 0
                             ? "\(model.threatsToRemove) threat\(model.threatsToRemove == 1 ? "" : "s")"
-                            : "No threats",
-                        caption: model.threatsToRemove > 0 ? "to remove" : "found by XProtect",
+                            : ProtectionScanner.lastSummary.status,
+                        caption: model.threatsToRemove > 0 ? "to remove" : "within the scan scope",
                         isOn: model.threatsToRemove > 0 ? $model.includeProtection : nil,
                         onReview: model.protection.hasResults ? { app.open(.protection) } : nil
                     )

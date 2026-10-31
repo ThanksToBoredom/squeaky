@@ -212,7 +212,7 @@ final class ModuleModel {
         let threats = categories.first { $0.id == ProtectionScanner.threatsID }?.items.count ?? 0
         let review = categories.first { $0.id == ProtectionScanner.launchItemsID }?.items.count ?? 0
         if threats > 0 { return "We found \(threats) threat\(threats == 1 ? "" : "s") on your Mac." }
-        return "No malware found. \(review) launch item\(review == 1 ? "" : "s") could use a look."
+        return "\(ProtectionScanner.lastSummary.status). \(review) launch item\(review == 1 ? "" : "s") could use a look."
     }
 
         // MARK: Selection

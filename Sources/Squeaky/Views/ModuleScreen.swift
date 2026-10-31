@@ -80,7 +80,7 @@ struct ResultsView: View {
             Spacer(minLength: 16)
 
             VStack(spacing: 18) {
-                Text(model.categories.isEmpty ? "Your Mac looks spotless." : model.headline)
+                Text(model.categories.isEmpty && model.module != .protection ? "Your Mac looks spotless." : model.headline)
                     .font(.system(size: 22, weight: .semibold))
                     .multilineTextAlignment(.center)
                 if !model.categories.isEmpty {
@@ -131,7 +131,7 @@ private struct EmptyResults: View {
         HStack(spacing: 18) {
             CategoryBadge(symbol: "checkmark", palette: module.palette, size: 52)
             VStack(alignment: .leading, spacing: 6) {
-                Text(module == .protection ? "No threats found" : "Nothing to clean up here")
+                Text(module == .protection ? ProtectionScanner.lastSummary.status : "Nothing to clean up here")
                     .font(.system(size: 19, weight: .semibold))
                 Text(message)
                     .font(.system(size: 13))
@@ -152,6 +152,7 @@ private struct EmptyResults: View {
         guard let version = summary.catalogVersion else {
             return "Squeaky couldn't read Apple's XProtect malware definitions on this Mac, so nothing was checked."
         }
+        if !summary.issues.isEmpty { return summary.issues.joined(separator: " ") }
         let date = summary.catalogUpdated.map { " (updated \($0.formatted(date: .abbreviated, time: .omitted)))" } ?? ""
         return "Checked \(summary.filesScanned) apps, launch items and downloaded files against Apple's XProtect malware definitions, version \(version)\(date). Apple keeps these up to date automatically."
     }
