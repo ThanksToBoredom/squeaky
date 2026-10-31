@@ -6,8 +6,11 @@ cd "$(dirname "$0")/.."
 
 CONFIG="${1:-release}"
 # The default (swift-build) backend currently fails to initialise with the
-# Command Line Tools on macOS 27, so stick to the native one for now.
-BUILD=(swift build -c "$CONFIG" --build-system native)
+# Command Line Tools on macOS 27, so use the native one where SwiftPM offers the choice.
+BUILD=(swift build -c "$CONFIG")
+if swift build --help 2>&1 | grep -q -- '--build-system'; then
+    BUILD+=(--build-system native)
+fi
 
 if [ "${UNIVERSAL:-0}" = "1" ]; then
     BIN_DIR="$(mktemp -d)"

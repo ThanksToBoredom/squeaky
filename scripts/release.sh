@@ -1,53 +1,65 @@
 #!/bin/bash
-# Publishes a GitHub release of the current commit, with a universal (Apple Silicon + Intel) DMG.
-# Usage: scripts/release.sh
+# Publishes a GitHub release of HEAD with a universal (Apple Silicon + Intel) DMG.
+# Used by the Release workflow on every push to main, and works locally too.
 #
-# The version comes from CFBundleShortVersionString in Resources/Info.plist: bump it (and
-# CFBundleVersion), commit and push before running. The build happens in a temporary worktree
-# of the pushed commit, so uncommitted changes never end up in a release.
+#   scripts/release.sh                 release if the commits since the last tag warrant one
+#   VERSION=1.2.3 scripts/release.sh   force a version
+#   DRY_RUN=1 scripts/release.sh       build the DMG but don't publish anything
+#
+# The version comes from the conventional commits since the last vX.Y.Z tag (see
+# scripts/next-version.sh) and is stamped into the app's Info.plist at build time; the build
+# number is the commit count. Locally the build runs in a temporary worktree of HEAD, so
+# uncommitted changes never end up in a release; HEAD must be pushed.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-VERSION="$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" Resources/Info.plist)"
+git fetch -q origin --tags || true
+VERSION="${VERSION:-$(scripts/next-version.sh)}"
+if [ -z "$VERSION" ]; then
+    echo "No feat, fix, perf or breaking commits since the last release: nothing to release."
+    exit 0
+fi
 TAG="v$VERSION"
 COMMIT="$(git rev-parse HEAD)"
+BUILD_NUMBER="$(git rev-list --count HEAD)"
 
-git fetch -q origin --tags
 if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
-    echo "$TAG already exists. Bump CFBundleShortVersionString in Resources/Info.plist first." >&2
+    echo "$TAG already exists." >&2
     exit 1
 fi
-if ! git branch -r --contains "$COMMIT" | grep -q .; then
-    echo "Push $COMMIT first, so the release matches what's on GitHub." >&2
-    exit 1
-fi
-
-WORKTREE="$(mktemp -d)/squeaky-$VERSION"
-git worktree add -q --detach "$WORKTREE" "$COMMIT"
-trap 'git worktree remove --force "$WORKTREE"' EXIT
 
 DMG="$PWD/dist/Squeaky-$VERSION.dmg"
-(cd "$WORKTREE" && UNIVERSAL=1 scripts/package.sh "$DMG")
+mkdir -p dist
 
+if [ "${GITHUB_ACTIONS:-}" = "true" ]; then
+    SOURCE="$PWD"
+else
+    if [ "${DRY_RUN:-0}" != "1" ] && ! git branch -r --contains "$COMMIT" | grep -q .; then
+        echo "Push $COMMIT first, so the release matches what's on GitHub." >&2
+        exit 1
+    fi
+    SOURCE="$(mktemp -d)/squeaky-$VERSION"
+    git worktree add -q --detach "$SOURCE" "$COMMIT"
+    trap 'git worktree remove --force "$SOURCE"' EXIT
+fi
+
+echo "Building Squeaky $VERSION (build $BUILD_NUMBER) from ${COMMIT:0:7}"
+/usr/libexec/PlistBuddy \
+    -c "Set :CFBundleShortVersionString $VERSION" \
+    -c "Set :CFBundleVersion $BUILD_NUMBER" \
+    "$SOURCE/Resources/Info.plist"
+(cd "$SOURCE" && UNIVERSAL=1 scripts/package.sh "$DMG")
+
+if [ "${DRY_RUN:-0}" = "1" ]; then
+    echo "Dry run: built $DMG, nothing published."
+    exit 0
+fi
+
+sed "s/{{VERSION}}/$VERSION/g" .github/release-notes.md > "$SOURCE/.release-notes.md"
 gh release create "$TAG" "$DMG" \
     --target "$COMMIT" \
     --title "Squeaky $VERSION" \
-    --generate-notes \
-    --notes "$(cat <<NOTES
-## Install
+    --notes-file "$SOURCE/.release-notes.md" \
+    --generate-notes
 
-1. Download **Squeaky-$VERSION.dmg** below and open it.
-2. Drag **Squeaky** onto **Applications**.
-3. Squeaky isn't notarized by Apple yet, so the first time you open it macOS will block it.
-   Open **System Settings → Privacy & Security**, scroll down and click **Open Anyway**.
-
-Works on macOS 15 or later, on Apple Silicon and Intel Macs.
-
-> Squeaky deletes files. Caches and logs are deleted permanently; everything else goes to the
-> Trash. Review what's selected and keep a backup. Provided as is, without warranty; see the
-> disclaimer in the README.
-NOTES
-)"
-
-git fetch -q origin --tags
-echo "Released $TAG: https://github.com/ThanksToBoredom/squeaky/releases/tag/$TAG"
+echo "Released $TAG"

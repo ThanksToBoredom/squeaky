@@ -1,0 +1,80 @@
+name: Release
+
+# Every push to main: if the conventional commits since the last vX.Y.Z tag include a feat,
+# fix, perf or breaking change, build a universal DMG and publish a GitHub release for it.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Build the DMG without publishing
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Release
+    runs-on: macos-latest
+    env:
+      HAS_SIGNING_CERTIFICATE: ${{ secrets.SIGNING_P12 != '' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Work out the next version
+        id: version
+        run: |
+          version="$(scripts/next-version.sh)"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Next version: ${version:-none (no feat, fix, perf or breaking commits)}"
+
+      - name: Test
+        if: steps.version.outputs.version != '' || inputs.dry_run
+        run: |
+          flags=()
+          if swift build --help 2>&1 | grep -q -- '--build-system'; then flags+=(--build-system native); fi
+          swift test "${flags[@]}"
+
+      # Optional: sign with the project's own certificate so the signature stays the same from
+      # release to release (macOS keeps Full Disk Access across updates). Without these secrets
+      # the app is signed ad hoc. See CONTRIBUTING.md.
+      - name: Import signing certificate
+        if: (steps.version.outputs.version != '' || inputs.dry_run) && env.HAS_SIGNING_CERTIFICATE == 'true'
+        env:
+          SIGNING_P12: ${{ secrets.SIGNING_P12 }}
+          SIGNING_P12_PASSWORD: ${{ secrets.SIGNING_P12_PASSWORD }}
+        run: |
+          keychain="$RUNNER_TEMP/signing.keychain-db"
+          password="$(uuidgen)"
+          echo "$SIGNING_P12" | base64 --decode > "$RUNNER_TEMP/signing.p12"
+          security create-keychain -p "$password" "$keychain"
+          security set-keychain-settings -lut 3600 "$keychain"
+          security unlock-keychain -p "$password" "$keychain"
+          security import "$RUNNER_TEMP/signing.p12" -k "$keychain" -P "$SIGNING_P12_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$password" "$keychain" >/dev/null
+          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+          rm "$RUNNER_TEMP/signing.p12"
+
+      - name: Build and publish
+        if: steps.version.outputs.version != '' || inputs.dry_run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version || '0.0.0-dryrun' }}
+          DRY_RUN: ${{ inputs.dry_run && '1' || '0' }}
+        run: scripts/release.sh
+
+      - uses: actions/upload-artifact@v4
+        if: inputs.dry_run
+        with:
+          name: Squeaky-dry-run
+          path: dist/*.dmg
+          retention-days: 7
