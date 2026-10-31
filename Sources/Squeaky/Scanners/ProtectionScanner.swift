@@ -82,9 +82,11 @@ enum ProtectionScanner {
         var completedFiles = 0
         var failedFiles = 0
         let chunks = stride(from: 0, to: targets.count, by: 16).map { Array(targets[$0..<min($0 + 16, targets.count)]) }
+        let cancellation = CancelToken()
+        await withTaskCancellationHandler {
         DispatchQueue.concurrentPerform(iterations: chunks.count) { index in
             for target in chunks[index] {
-                if Task.isCancelled { return }
+                if cancellation.isCancelled { return }
                 reporter.report(target.file.path)
                 let scans = rules.map { $0.scan(file: target.file) }
                 findingsLock.withLock {
@@ -97,10 +99,14 @@ enum ProtectionScanner {
                 findingsLock.withLock { findings[target.owner, default: []] += reasons }
             }
         }
+        } onCancel: {
+            cancellation.cancel()
+        }
         if Task.isCancelled { return [] }
 
         // 3. Gatekeeper's blocklist and blocked Safari extensions.
         for owner in Set(targets.map(\.owner)) {
+            if Task.isCancelled { return [] }
             let signing = SigningInfo(owner)
             if let team = signing.teamID, blocklist.teams.contains(team) {
                 findings[owner, default: []].append("Signed by a developer Apple has blocked (\(team))")
