@@ -11,6 +11,7 @@ final class CatalogTests: XCTestCase {
         XCTAssertTrue(catalog.yaraSources.isEmpty)
         XCTAssertTrue(catalog.blockedSafariExtensions.isEmpty)
         XCTAssertTrue(catalog.gatekeeperBlocklist().hashes.isEmpty)
+        XCTAssertFalse(catalog.gatekeeperBlocklist().complete)
         let file = root.appendingPathComponent("gk.db")
         try Data("invalid sqlite".utf8).write(to: file)
         XCTAssertTrue(catalog.gatekeeperBlocklist().teams.isEmpty)
@@ -21,5 +22,8 @@ final class CatalogTests: XCTestCase {
         XCTAssertEqual(sqlite3_exec(db, "CREATE TABLE blocked_teams(team_id TEXT); INSERT INTO blocked_teams VALUES ('TEAM'), (NULL);", nil, nil, nil), SQLITE_OK)
         XCTAssertEqual(catalog.gatekeeperBlocklist().teams, ["TEAM"])
         XCTAssertTrue(catalog.gatekeeperBlocklist().hashes.isEmpty)
+        XCTAssertFalse(catalog.gatekeeperBlocklist().complete)
+        XCTAssertEqual(sqlite3_exec(db, "CREATE TABLE blocked_hashes(hash BLOB);", nil, nil, nil), SQLITE_OK)
+        XCTAssertTrue(catalog.gatekeeperBlocklist().complete)
     }
 }
