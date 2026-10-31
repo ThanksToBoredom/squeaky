@@ -48,10 +48,10 @@ struct IconWall: View {
 
     var body: some View {
         GeometryReader { proxy in
-            let columns = columns ?? max(1, Int((proxy.size.width + spacing) / (cellSize + spacing)))
-            let size = (proxy.size.width - spacing * CGFloat(columns - 1)) / CGFloat(columns)
+            let columns = max(1, columns ?? max(1, Int((proxy.size.width + spacing) / max(1, cellSize + spacing))))
+            let size = max(1, (proxy.size.width - spacing * CGFloat(columns - 1)) / CGFloat(columns))
             let fullRows = max(1, Int((proxy.size.height + spacing) / (size + spacing)))
-            let rows = self.columns == nil ? fullRows + 1 : rows
+            let rows = self.columns == nil ? fullRows + 1 : max(0, rows)
             let shown = fill.map { max(1, Int((Double(columns * fullRows) * $0).rounded())) } ?? Int.max
             VStack(alignment: .leading, spacing: spacing) {
                 ForEach(0..<rows, id: \.self) { row in
@@ -97,7 +97,9 @@ struct IconWall: View {
         count: Int = 160,
         fillers: [UTType] = [.folder, .pdf, .movie, .image, .zip, .diskImage, .mp3, .spreadsheet, .presentation, .plainText]
     ) -> [NSImage] {
+        let count = max(0, count)
         let files = urls.prefix(count).map(IconCache.icon(for:))
+        guard !fillers.isEmpty else { return files }
         let padding = (0..<max(0, count - files.count)).map { IconCache.icon(for: fillers[$0 % fillers.count]) }
         return files + padding
     }
