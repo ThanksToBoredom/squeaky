@@ -33,6 +33,12 @@ struct ProcessUsage: Identifiable, Sendable {
 }
 
 enum SystemSampler {
+    static func cpuFraction(current: SystemSample, previous: SystemSample?) -> Double? {
+        guard let previous, current.totalTicks > previous.totalTicks,
+              current.busyTicks >= previous.busyTicks else { return nil }
+        return min(1, Double(current.busyTicks - previous.busyTicks) / Double(current.totalTicks - previous.totalTicks))
+    }
+
     static let processorCount = max(1, ProcessInfo.processInfo.activeProcessorCount)
 
     /// Mach time units to nanoseconds (1 on Intel, 125/3 on Apple silicon).

@@ -58,12 +58,11 @@ final class PerformanceModel {
 
     private func tick() async {
         let sample = await Task.detached(priority: .utility) { SystemSampler.sample() }.value
+        guard !Task.isCancelled else { return }
         let now = DispatchTime.now().uptimeNanoseconds
         let elapsed = previous == nil ? 0 : now - previousTime
 
-        if let previous, sample.totalTicks > previous.totalTicks {
-            cpu = Double(sample.busyTicks - previous.busyTicks) / Double(sample.totalTicks - previous.totalTicks)
-        }
+        cpu = SystemSampler.cpuFraction(current: sample, previous: previous)
         memoryUsed = sample.memoryUsed
         diskFree = sample.diskFree
         diskTotal = sample.diskTotal
