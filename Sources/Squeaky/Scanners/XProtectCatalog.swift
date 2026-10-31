@@ -55,8 +55,9 @@ struct XProtectCatalog: Sendable {
     func gatekeeperBlocklist() -> (hashes: Set<Data>, teams: Set<String>) {
         var database: OpaquePointer?
         let path = resources.appendingPathComponent("gk.db").path
+        // SQLite can allocate a handle even when opening fails.
+        defer { if let database { sqlite3_close(database) } }
         guard sqlite3_open_v2(path, &database, SQLITE_OPEN_READONLY, nil) == SQLITE_OK else { return ([], []) }
-        defer { sqlite3_close(database) }
 
         var hashes = Set<Data>()
         var teams = Set<String>()
@@ -69,6 +70,7 @@ struct XProtectCatalog: Sendable {
             }
         }
         sqlite3_finalize(statement)
+        statement = nil
         if sqlite3_prepare_v2(database, "SELECT team_id FROM blocked_teams", -1, &statement, nil) == SQLITE_OK {
             while sqlite3_step(statement) == SQLITE_ROW {
                 if let text = sqlite3_column_text(statement, 0) { teams.insert(String(cString: text)) }
