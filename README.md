@@ -185,6 +185,10 @@ commercial use, ClamAV signatures are GPL, and VirusTotal's free API forbids use
 Debug builds accept `SQUEAKY_TEST_RULE=1`, which adds a rule matching files containing
 `SQUEAKY-YARA-SELFTEST`, for testing detection end to end without real malware.
 
+## Contributing
+
+Contributions are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md), including the safety rules for code that removes files.
+
 ## License
 
 MIT, see [LICENSE](LICENSE). Bundled third-party code and artwork keep their own licences (see Credits).
