@@ -78,9 +78,14 @@ enum FileUtils {
 
     /// Last line of defence: we only ever remove things inside the user's home
     /// folder (never the well-known folders themselves) or app bundles in /Applications.
-    static func isSafeToRemove(_ url: URL) -> Bool {
-        let path = url.standardizedFileURL.path
-        let homePath = home.standardizedFileURL.path
+    static func isSafeToRemove(_ url: URL, home: URL = FileUtils.home) -> Bool {
+        guard url.isFileURL else { return false }
+        // Resolve ancestors, but not the final component: removing a symlink removes
+        // the link itself. A symlinked parent, however, redirects the operation.
+        let normalized = url.standardizedFileURL
+        let path = normalized.deletingLastPathComponent().resolvingSymlinksInPath()
+            .appendingPathComponent(normalized.lastPathComponent).path
+        let homePath = home.resolvingSymlinksInPath().standardizedFileURL.path
         let protected: Set<String> = Set([
             "", "Library", "Desktop", "Documents", "Downloads", "Movies", "Music", "Pictures",
             "Applications", ".Trash", "Library/Caches", "Library/Logs", "Library/Application Support",
@@ -89,7 +94,11 @@ enum FileUtils {
 
         if protected.contains(path) { return false }
         if path.hasPrefix(homePath + "/") { return true }
-        if path.hasPrefix("/Applications/"), url.pathExtension == "app" { return true }
+        if path.hasPrefix("/Applications/"), normalized.pathExtension == "app" {
+            // Do not offer nested helper apps independently of their owning app.
+            return !URL(fileURLWithPath: path).deletingLastPathComponent().pathComponents
+                .contains { $0.hasSuffix(".app") }
+        }
         return false
     }
 

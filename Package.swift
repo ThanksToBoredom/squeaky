@@ -5,6 +5,7 @@ let package = Package(
     name: "Squeaky",
     platforms: [.macOS(.v15)],
     targets: [
+        .testTarget(name: "SqueakyTests", dependencies: ["Squeaky"]),
         .executableTarget(
             name: "Squeaky",
             dependencies: ["CYara"],
