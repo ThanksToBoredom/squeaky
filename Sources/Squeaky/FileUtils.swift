@@ -149,6 +149,7 @@ struct RemovalRequest: Sendable {
     var launchLabels: [String] = []
     let size: Int64
     let method: RemovalMethod
+    var duplicateOriginal: URL? = nil
 }
 
 enum FileOps {
@@ -178,6 +179,14 @@ enum FileOps {
             guard (try? fm.attributesOfItem(atPath: request.url.path)) != nil else {
                 summary.failures.append("\(request.url.abbreviatedPath): no longer available.")
                 continue
+            }
+            if let original = request.duplicateOriginal {
+                guard original.resolvingSymlinksInPath() != request.url.resolvingSymlinksInPath(),
+                      let originalHash = FileUtils.sha256(of: original),
+                      let copyHash = FileUtils.sha256(of: request.url), originalHash == copyHash else {
+                    summary.failures.append("\(request.url.abbreviatedPath): duplicate changed or its original is unavailable; scan again.")
+                    continue
+                }
             }
             for label in request.launchLabels {
                 launchctl(["bootout", "gui/\(getuid())/\(label)"])

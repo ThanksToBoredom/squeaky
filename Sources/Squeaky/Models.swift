@@ -27,6 +27,7 @@ struct CleanItem: Identifiable, Sendable {
     var launchLabels: [String] = []
     var removal: RemovalMethod
     var selectedByDefault = true
+    var duplicateOriginal: URL?
     /// System-wide parts (launch daemons/agents in /Library and their privileged helpers) that
     /// Squeaky can't remove without an administrator. Shown as a warning.
     var systemComponents: [URL] = []
@@ -346,7 +347,7 @@ final class ModuleModel {
         let requests = selectedItems(in: categoryIDs).map {
             RemovalRequest(
                 url: $0.url, extras: includedExtras(of: $0).map(\.url), launchLabels: $0.launchLabels,
-                size: effectiveSize(of: $0), method: $0.removal
+                size: effectiveSize(of: $0), method: $0.removal, duplicateOriginal: $0.duplicateOriginal
             )
         }
         let summary = await Task.detached(priority: .userInitiated) { () -> CleanSummary in

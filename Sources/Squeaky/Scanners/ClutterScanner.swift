@@ -13,8 +13,7 @@ enum ClutterScanner {
         let modified: Date
     }
 
-    static func scan(_ reporter: ProgressReporter) async -> [ScanCategory] {
-        let home = FileUtils.home
+    static func scan(_ reporter: ProgressReporter, home: URL = FileUtils.home) async -> [ScanCategory] {
         let downloads = home.appendingPathComponent("Downloads")
         let roots = ["Desktop", "Documents", "Downloads", "Movies", "Music", "Pictures"]
             .map { home.appendingPathComponent($0) }
@@ -146,11 +145,11 @@ enum ClutterScanner {
             }
         }
 
-        let downloadsPath = downloads.path + "/"
+        let downloadsPath = downloads.resolvingSymlinksInPath().path + "/"
         return groups
             .sorted { $0[0].size > $1[0].size }
             .flatMap { group -> [CleanItem] in
-                let sorted = group.sorted { $0.modified < $1.modified }
+                let sorted = group.sorted { ($0.modified, $0.url.path) < ($1.modified, $1.url.path) }
                 let original = sorted[0]
                 return sorted.dropFirst().map { copy in
                     CleanItem(
@@ -159,7 +158,8 @@ enum ClutterScanner {
                         size: copy.size,
                         detail: "Copy of \(original.url.abbreviatedPath)",
                         removal: .trash,
-                        selectedByDefault: copy.url.path.hasPrefix(downloadsPath)
+                        selectedByDefault: copy.url.resolvingSymlinksInPath().path.hasPrefix(downloadsPath),
+                        duplicateOriginal: original.url
                     )
                 }
             }
